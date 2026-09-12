@@ -19,7 +19,7 @@ Total: **37 features + 1 alvo**, **1.501.374 registros** (ano-base 2023).
 | Coluna | Descrição | Fonte | Observação |
 |---|---|---|---|
 | `populacao` | População estimada do município | IBGE (População) | — |
-| `pib_per_capita` | PIB per capita do município (`pib / populacao`) | IBGE (PIB dos Municípios) | Feature derivada — evita confundir tamanho do município com riqueza |
+| `pib_per_capita` | PIB per capita do município (`pib / populacao`) | IBGE (PIB dos Municípios) | Feature derivada, evita confundir tamanho do município com riqueza |
 | `atu_ef_anos_iniciais` | Alunos por turma, anos iniciais do Ensino Fundamental | INEP (Indicadores Educacionais) | — |
 | `dsu_ef_anos_iniciais` | % de docentes com curso superior, anos iniciais | INEP (Indicadores Educacionais) | Correlação negativa com o alvo (ver insight no README) |
 | `afd_ef_anos_iniciais_grupo_1` | Adequação da formação docente (grupo mais adequado) | INEP (Indicadores Educacionais) | — |
@@ -29,7 +29,7 @@ Total: **37 features + 1 alvo**, **1.501.374 registros** (ano-base 2023).
 | `taxa_aprovacao_ef_2_ano_anterior` | Taxa de aprovação, 2º ano, **ano anterior (2022)** | INEP (Indicadores Educacionais) | Defasada 1 ano para evitar data leakage |
 | `taxa_abandono_ef_2_ano_anterior` | Taxa de abandono, 2º ano, **ano anterior (2022)** | INEP (Indicadores Educacionais) | Defasada 1 ano para evitar data leakage |
 | `inse_medio` | Nível socioeconômico médio das escolas do município | INEP (INSE) | Agregado de escola para município (ver limitações no README) |
-| `meta_alfabetizacao_2024_municipio` | Meta de alfabetização do município para 2024 | INEP (Meta de Alfabetização Municipal) | Nulos (rede Estadual + resíduo) preenchidos com mediana — ver coluna indicadora abaixo |
+| `meta_alfabetizacao_2024_municipio` | Meta de alfabetização do município para 2024 | INEP (Meta de Alfabetização Municipal) | Nulos (rede Estadual + resíduo) preenchidos com mediana |
 | `meta_alfabetizacao_2024_uf` | Meta de alfabetização da UF para 2024 (rede pública) | INEP (Meta de Alfabetização Estadual) | — |
 
 ---
@@ -43,9 +43,9 @@ Total: **37 features + 1 alvo**, **1.501.374 registros** (ano-base 2023).
 
 ---
 
-## Features categóricas codificadas — `sigla_uf` (22 colunas, one-hot com `drop_first=True`)
+## Features categóricas codificadas: `sigla_uf` (22 colunas, one-hot com `drop_first=True`)
 
-`AL` (Alagoas) é a categoria de referência (não gera coluna própria — está implícita quando todas as outras UFs abaixo são 0).
+`AL` (Alagoas) é a categoria de referência (não gera coluna própria, está implícita quando todas as outras UFs abaixo são 0).
 
 | Coluna | UF |
 |---|---|
@@ -72,19 +72,19 @@ Total: **37 features + 1 alvo**, **1.501.374 registros** (ano-base 2023).
 | `sigla_uf_SE` | Sergipe |
 | `sigla_uf_TO` | Tocantins |
 
-⚠️ **`SP`, `AC`, `RR` e `DF` não aparecem** — essas 4 UFs estão ausentes da base de origem (ver Limitações no README). O modelo não deve ser usado para esses estados.
+⚠️ **`SP`, `AC`, `RR` e `DF` não aparecem**, essas 4 UFs estão ausentes da base de origem. O modelo não deve ser usado para esses estados.
 
 ---
 
 ## Colunas que existiam na Gold, mas foram removidas antes da modelagem
 
-Documentado aqui por rastreabilidade — explica por que uma coluna que existe na tabela `alunos_alfabetizacao` (Gold da Fase 2/3) não aparece no `X` final.
+Documentado aqui por rastreabilidade, explica por que uma coluna que existe na tabela `alunos_alfabetizacao` (Gold da Fase 2/3) não aparece no `X` final.
 
 ### Removidas por data leakage
 
 | Coluna | Motivo |
 |---|---|
-| `proficiencia` | Define o alvo diretamente (corte de 743 pontos) — correlação de 0,792, prova de match 100% |
+| `proficiencia` | Define o alvo diretamente (corte de 743 pontos), correlação de 0,792, prova de match 100% |
 | `taxa_alfabetizacao_municipio` | Agregado calculado incluindo o próprio aluno |
 | `taxa_alfabetizacao_uf` | Mesmo motivo, em nível estadual |
 | `media_portugues_municipio` | Mesmo mecanismo de `taxa_alfabetizacao_municipio` |
