@@ -111,7 +111,7 @@ Documentado aqui por rastreabilidade, explica por que uma coluna que existe na t
 
 | Coluna | Motivo |
 |---|---|
-| `id_aluno`, `id_escola`, `id_municipio` | Identificadores, sem significado de quantidade — correlação espúria confirmada no heatmap |
+| `id_aluno`, `id_escola`, `id_municipio` | Identificadores, sem significado de quantidade. |
 | `ano`, `serie`, `presenca` | Variância zero após os filtros de escopo (só 2023, só 1 série, só "Presente") |
 | `preenchimento_caderno` | Extremamente desbalanceada (249 casos de 1,5 milhão) |
 | `sigla_uf_nome`, `id_municipio_nome` | Duplicatas textuais de `sigla_uf`/`id_municipio` |

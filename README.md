@@ -39,29 +39,27 @@ A pipeline seguiu, nessa ordem:
 8. **Padronização**: `StandardScaler` ajustado (`fit`) exclusivamente no conjunto de treino, aplicado (`transform`) em treino e teste, evitando vazamento de informação do teste para o treino.
 9. **Seleção e validação de features**: comparação entre 4 métodos independentes de importância de features (correlação, Informação Mútua, RFE, Feature Importance), buscando robustez nas conclusões.
 10. **Validação cruzada e otimização de hiperparâmetros**: `RandomizedSearchCV` com validação cruzada (`cv=3`), otimizando diretamente o recall da classe de risco ("Não"), não a acurácia geral.
-11. **Integração do pré-processamento ao pipeline do modelo**: reconstrução do modelo final como um único `Pipeline` (`ColumnTransformer` + `RandomForestClassifier`), corrigindo um vazamento sutil identificado no processo manual (a padronização era calculada usando todo o treino antes da validação cruzada dividir os dados em dobras no `Pipeline`, ela é recalculada a cada dobra).
+11. **Integração do pré-processamento ao pipeline do modelo**: reconstrução do modelo final como um único `Pipeline` (`ColumnTransformer` + `RandomForestClassifier`), corrigindo um vazamento sutil identificado no processo manual.
 
-## Organização dos notebooks: 
-notebooks/eda.ipynb contém a análise exploratória completa e o raciocínio por trás de cada decisão (investigações de nulos, comparação de modelos, SHAP, etc.). notebooks/pipeline_final.ipynb contém a versão final, limpa e reproduzível, usando as funções modularizadas em src/ (preprocessing, modeling, evaluation, visualization) — reproduz os mesmos resultados finais em poucas células, sem repetir o processo de exploração.
+**Organização dos notebooks**: `notebooks/eda.ipynb` contém a análise exploratória completa e o raciocínio por trás de cada decisão (investigações de nulos, comparação de modelos, SHAP, etc.) é o "diário de bordo" do projeto. `notebooks/pipeline_final.ipynb` contém a versão final, limpa e reproduzível, usando as funções modularizadas em `src/` (`preprocessing`, `modeling`, `evaluation`, `visualization`) reproduz os mesmos resultados finais em poucas células, sem repetir o processo de exploração.
 
 ## Escolha do algoritmo
 
-Foram testados 4 modelos:
+Foram testados 3 modelos:
 
 | Modelo | Acurácia (treino) | Acurácia (teste) |
 |---|---|---|
-| Regressão Logística | 64,38% | 64,40% |
-| Árvore de Decisão (`max_depth=5`) | 64,49% | 64,46% |
-| Árvore de Decisão (sem limite de profundidade) | 64,85% | 64,56% |
-| **Random Forest (100 árvores)** | 64,85% | 64,56% |
+| Regressão Logística | 64,39% | 64,31% |
+| Árvore de Decisão (`max_depth=5`) | 64,50% | 64,40% |
+| **Random Forest (100 árvores)** | 64,87% | 64,48% |
 
 **Modelo escolhido: Random Forest**, com `class_weight="balanced"`. Justificativa:
-- Empatou na melhor acurácia entre os 4 modelos testados.
+- Obteve o melhor desempenho entre os 3 modelos testados, ainda que por margem pequena.
 - Demonstrou maior estabilidade na importância de features quando comparado com uma única árvore de decisão (o padrão de importância de UFs específicas se manteve mais consistente ao usar 100 árvores em vez de 1).
 - Permite interpretabilidade nativa via `feature_importances_` e SHAP (`TreeExplainer`).
 - Captura padrões não-lineares e interações entre variáveis que a Regressão Logística (modelo linear) não conseguiu capturar, evidenciado pelo salto de desempenho da Regressão Logística ao receber as features de meta (ganho real), contra o ganho quase nulo da Random Forest (que já capturava sinal equivalente por outros caminhos).
 
-Todos os 4 modelos convergiram para uma faixa de acurácia entre 64% e 65%, sugerindo um teto real de sinal extraível dos dados disponíveis, nenhuma feature individual apresentou correlação forte com o alvo (a mais forte, isolada, foi 0,333).
+Todos os 3 modelos convergiram para uma faixa de acurácia entre 64% e 65%, sugerindo um teto real de sinal extraível dos dados disponíveis, nenhuma feature individual apresentou correlação forte com o alvo (a mais forte, isolada, foi 0,333).
 
 **Validação e otimização**: a busca de hiperparâmetros (amostra de 200 mil linhas, `RandomizedSearchCV`, `cv=3`, otimizando recall da classe "Não") encontrou uma Random Forest mais simples (`n_estimators=50`, `max_depth=10`) com desempenho estatisticamente equivalente ao modelo original (100 árvores, sem limite de profundidade): recall "Não" de 66% (vs. 67% original), acurácia de 62% (idêntica). A estabilidade entre a configuração original e a otimizada via validação cruzada confirma que o resultado reflete um padrão real nos dados, não uma coincidência do split treino/teste inicial e o modelo mais simples é preferível por eficiência computacional, sem perda de qualidade.
 
@@ -97,11 +95,11 @@ A convergência entre métodos independentes reforça a confiança nas conclusõ
 
 **2. Achado contraintuitivo: mais professores qualificados correlaciona com pior resultado.** `dsu_ef_anos_iniciais` (% de docentes com curso superior) mostrou correlação negativa com o alvo. Investigação revelou correlação de -0,48 com o nível socioeconômico do município, sugerindo que essa qualificação docente é direcionada como política compensatória a municípios mais vulneráveis, sem ser suficiente, sozinha, para reverter a desvantagem estrutural.
 
-**3. Ceará se destaca com um padrão visual único na análise SHAP** um grupo de alunos com impacto fortemente positivo na predição, bem separado das demais UFs. Consistente com o Ceará ser nacionalmente reconhecido pelo PAIC (Programa Alfabetização na Idade Certa).
+**3. Ceará se destaca com um padrão visual único na análise SHAP** um grupo de alunos com impacto fortemente positivo na predição, bem separado das demais UFs.
 
 **4. Rede de ensino (Municipal vs. Estadual) tem diferença real, porém modesta**: 61,3% de alfabetização na rede Estadual contra 58,1% na Municipal, confirmado por dois métodos independentes (Informação Mútua e RFE).
 
-**5. Adicionar uma feature forte nem sempre melhora a acurácia do modelo.** As metas de alfabetização, apesar de serem os preditores individuais mais fortes encontrados, praticamente não alteraram a acurácia da Random Forest (64,55% → 64,56%) a análise de `feature_importances_` mostrou que elas substituíram, sem adicionar, sinal que outras variáveis (`dsu_ef_anos_iniciais`, `inse_medio`, UF) já capturavam por caminhos indiretos.
+**5. Adicionar uma feature forte nem sempre melhora a acurácia do modelo.** As metas de alfabetização, apesar de serem os preditores individuais mais fortes encontrados, praticamente não alteraram a acurácia da Random Forest (fixou-se em torno de 64,5%) a análise de `feature_importances_` mostrou que elas substituíram, sem adicionar, sinal que outras variáveis (`dsu_ef_anos_iniciais`, `inse_medio`, UF) já capturavam por caminhos indiretos.
 
 ## Limitações do projeto
 
@@ -126,5 +124,3 @@ O modelo permite:
 - Resolver a incompatibilidade de `id_escola`, possivelmente obtendo um identificador oficial junto à fonte de dados, para permitir enriquecimento de Censo Escolar/INSE em granularidade real de escola.
 - Explorar clusterização (por exemplo, K-means) sobre indicadores municipais para identificação sistemática de regiões com padrões semelhantes, complementando a inspeção UF por UF feita neste projeto.
 - Testar ajuste de limiar de decisão como alternativa/complemento ao `class_weight`, para calibrar de forma mais fina o trade-off entre recall e precisão conforme a tolerância a risco do gestor público.
-
-> As 5 perguntas de negócio do desafio (fatores de maior impacto, municípios de risco, regiões com padrões semelhantes, previsão de metas futuras, variáveis mais influentes) são respondidas em detalhe na seção "Aplicação Estratégica" de `notebooks/eda.ipynb`, e resumidas no vídeo executivo.
